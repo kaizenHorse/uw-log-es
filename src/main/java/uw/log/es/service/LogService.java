@@ -45,9 +45,6 @@ public class LogService {
 
     private static final Logger log = LoggerFactory.getLogger(LogService.class);
 
-    private static final String INDEX_TYPE = "logs";
-
-
     /**
      * 日志编码
      */
@@ -291,7 +288,7 @@ public class LogService {
     public void regLogObject(Class<?> logClass, String index, String indexPattern) {
         String rawIndex = index == null ? buildIndexName(logClass) : index;
         FastDateFormat dateFormat = indexPattern == null ? null : FastDateFormat.getInstance(indexPattern, (TimeZone) null);
-        IndexConfigVo indexConfigVo = new IndexConfigVo(rawIndex, rawIndex + "_*", dateFormat);
+        IndexConfigVo indexConfigVo = new IndexConfigVo(rawIndex, dateFormat);
         regMap.put(logClass, indexConfigVo);
     }
 
@@ -305,7 +302,7 @@ public class LogService {
         if (configVo == null) {
             return null;
         }
-        return configVo.getRawName();
+        return configVo.getRawIndex();
     }
 
     /**
@@ -318,44 +315,21 @@ public class LogService {
         return '"'+ getRawIndexName(logClass)+'"';
     }
 
-
     /**
-     * 获取日志的查询索引
-     *
-     * @param logClass
-     */
-    public String getQueryIndexName(Class<?> logClass) {
-        IndexConfigVo configVo = regMap.get(logClass);
-        if (configVo == null) {
-            return null;
-        }
-        return configVo.getQueryName();
-    }
-
-    /**
-     * 获得带引号的查询索引名。
+     * 获取日志的type class_xxx
      * @param logClass
      * @return
      */
-
-    public String getQuotedQueryIndexName(Class<?> logClass){
-        return "\\\""+ getQueryIndexName(logClass)+"\\\"";
-    }
-
-    /**
-     * @param logClass
-     * @return
-     */
-    private String getIndex(Class<?> logClass) {
+    private String getType(Class<?> logClass) {
         IndexConfigVo configVo = regMap.get(logClass);
         if (configVo == null) {
             return null;
         }
         FastDateFormat indexPattern = configVo.getIndexPattern();
         if (indexPattern == null) {
-            return configVo.getRawName();
+            return configVo.getRawIndex();
         }
-        return configVo.getRawName() +'_'+ indexPattern.format(System.currentTimeMillis());
+        return configVo.getRawIndex() +'_'+ indexPattern.format(System.currentTimeMillis());
     }
 
     /**
@@ -367,8 +341,12 @@ public class LogService {
         if (!logState) {
             return;
         }
-        String index = getIndex(source.getClass());
+        String index = getRawIndexName(source.getClass());
         if (StringUtils.isBlank(index)) {
+            return;
+        }
+        String type = getType(source.getClass());
+        if (StringUtils.isBlank(type)) {
             return;
         }
         // 写上时间戳
@@ -382,7 +360,7 @@ public class LogService {
         okb.writeUtf8("{\"index\":{\"_index\":\"")
                 .writeUtf8(index)
                 .writeUtf8("\",\"_type\":\"")
-                .writeUtf8(INDEX_TYPE)
+                .writeUtf8(type)
                 .writeUtf8("\"}}");
         okb.write(LINE_SEPARATOR_BYTES);
         try {
@@ -416,8 +394,12 @@ public class LogService {
             return;
         }
 
-        String index = getIndex(sourceList.get(0).getClass());
+        String index = getRawIndexName(sourceList.get(0).getClass());
         if (StringUtils.isBlank(index)) {
+            return;
+        }
+        String type = getType(sourceList.get(0).getClass());
+        if (StringUtils.isBlank(type)) {
             return;
         }
         okio.Buffer okb = new okio.Buffer();
@@ -432,7 +414,7 @@ public class LogService {
             okb.writeUtf8("{\"index\":{\"_index\":\"")
                     .writeUtf8(index)
                     .writeUtf8("\",\"_type\":\"")
-                    .writeUtf8(INDEX_TYPE)
+                    .writeUtf8(type)
                     .writeUtf8("\"}}");
             okb.write(LINE_SEPARATOR_BYTES);
             try {
@@ -498,18 +480,19 @@ public class LogService {
      * dsl查询日志
      *
      * @param tClass   日志对象类型
-     * @param index    索引
      * @param dslQuery dsl查询条件
      * @return
      */
     @SuppressWarnings("unchecked")
-    public <T> SearchResponse<T> dslQuery(Class<T> tClass, String index, String dslQuery) {
+    public <T> SearchResponse<T> dslQuery(Class<T> tClass, String dslQuery) {
         if (StringUtils.isBlank(clusters)) {
             return null;
         }
+        String index = getRawIndexName(tClass);
+        String type = getType(tClass);
         StringBuilder urlBuilder = new StringBuilder(clusters);
         urlBuilder.append("/").append(index).append("/")
-                .append("_search?type=").append(INDEX_TYPE);
+                .append("_search?type=").append(type);
         SearchResponse<T> resp = null;
         JavaType javaType = JsonInterfaceHelper.JSON_CONVERTER.constructParametricType(SearchResponse.class, tClass);
 
@@ -530,21 +513,23 @@ public class LogService {
      * scroll查询
      *
      * @param tClass              日志对象类型
-     * @param index               索引
      * @param scrollExpireSeconds scroll api 过期时间
      * @param <T>
      * @return
      */
-    public <T> ScrollResponse<T> scrollQueryOpen(Class<T> tClass, String index, int scrollExpireSeconds, String dslQuery) {
+    public <T> ScrollResponse<T> scrollQueryOpen(Class<T> tClass, int scrollExpireSeconds, String dslQuery) {
         if (StringUtils.isBlank(clusters)) {
             return null;
         }
         if (scrollExpireSeconds <= 0) {
             scrollExpireSeconds = 60;
         }
+        String index = getRawIndexName(tClass);
+        String type = getType(tClass);
         StringBuilder urlBuilder = new StringBuilder(clusters);
         urlBuilder.append("/").append(index).append("/")
-                .append("_search?").append(SCROLL).append("=").append(scrollExpireSeconds).append("s");
+                .append("_search?type=").append(type)
+                .append("&").append(SCROLL).append("=").append(scrollExpireSeconds).append("s");
         ScrollResponse<T> resp = null;
         try {
             Request.Builder requestBuilder = new Request.Builder().url(urlBuilder.toString());

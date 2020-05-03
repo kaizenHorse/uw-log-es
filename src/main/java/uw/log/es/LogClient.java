@@ -56,7 +56,7 @@ public class LogClient {
     }
 
     /**
-     * 注册日志类型
+     * 注册日志类型(暂时不支持查询)
      *
      * @param logClass     日志类
      * @param index        自定义索引名称
@@ -87,24 +87,6 @@ public class LogClient {
     }
 
 
-    /**
-     * 获取日志的查询索引。
-     *
-     * @param logClass
-     * @return
-     */
-    public String getQueryIndexName(Class<?> logClass) {
-        return logService.getQueryIndexName(logClass);
-    }
-
-    /**
-     * 获得带引号的查询索引名。
-     * @param logClass
-     * @return
-     */
-    public String getQuotedQueryIndexName(Class<?> logClass){
-        return  logService.getQuotedQueryIndexName(logClass);
-    }
 
     /**
      * 写日志
@@ -144,20 +126,7 @@ public class LogClient {
      * @return
      */
     public <T> SearchResponse<T> dslQuery(Class<T> tClass, String dslQuery) {
-        return logService.dslQuery(tClass, logService.getQueryIndexName(tClass), dslQuery);
-    }
-
-    /**
-     * dsl日志查询
-     *
-     * @param tClass   日志对象类型
-     * @param index    索引
-     * @param dslQuery dsl查询内容
-     * @param <T>
-     * @return
-     */
-    public <T> SearchResponse<T> dslQuery(Class<T> tClass, String index, String dslQuery) {
-        return logService.dslQuery(tClass, index, dslQuery);
+        return logService.dslQuery(tClass, dslQuery);
     }
 
     /**
@@ -177,13 +146,12 @@ public class LogClient {
      * 注：scroll dsl不能含有from节点
      *
      * @param tClass              日志对象类型
-     * @param index               索引
      * @param scrollExpireSeconds scroll api 过期时间
      * @param <T>
      * @return 错误时为空
      */
-    public <T> ScrollResponse<T> scrollQueryOpen(Class<T> tClass, String index, int scrollExpireSeconds, String dslQuery) {
-        return logService.scrollQueryOpen(tClass, index, scrollExpireSeconds, dslQuery);
+    public <T> ScrollResponse<T> scrollQueryOpen(Class<T> tClass, int scrollExpireSeconds, String dslQuery) {
+        return logService.scrollQueryOpen(tClass, scrollExpireSeconds, dslQuery);
     }
 
     /**

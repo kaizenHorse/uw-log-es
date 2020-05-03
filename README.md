@@ -9,8 +9,7 @@ Elasticsearch(下文简称es)是一个基于Lucene的搜索服务器,其强大�
 uw-log-es的主要特性:
 1. 使用uw-httpclient做REST构建查询,支持Http Basic 验证;
 2. 支持多种方式批量写入,完全自动化构建日志内容;
-3. 支持多种方式查询,并映自动射到日志对象;
-
+3. 支持SQL(官方api映射成DSL,7.x特性),DSL查询,并映自动射到日志对象;
 #### 项目引入
 
 ```xml

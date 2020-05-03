@@ -52,25 +52,23 @@ public class LogClientDSLTest {
     @Test
     public void testSqlToDsl() throws Exception {
 
-        logClient.regLogObjectWithIndexNameAndPattern(MscActionLog.class,"joy-party", "yyyyMMdd");
-        String logIndex = logClient.getQuotedQueryIndexName(MscActionLog.class);
-
+        logClient.regLogObjectWithIndexPattern(MscActionLog.class, "yyyyMMdd");
+        String logIndex = logClient.getRawIndexName(MscActionLog.class);
         System.out.println(logClient.translateSqlToDsl("SELECT count(*) from "+logIndex, 0, 0, true));
     }
 
     @Test
     public void testDslSearch() throws Exception {
-        logClient.regLogObjectWithIndexNameAndPattern(MscActionLog.class,"uw.auth.server.vo.msc_action_log", "yyyyMMdd");
-        String logIndex = logClient.getQuotedQueryIndexName(MscActionLog.class);
-
+        logClient.regLogObjectWithIndexPattern(MscActionLog.class,"yyyyMMdd");
+        String logIndex = logClient.getRawIndexName(MscActionLog.class);
         String dsl = logClient.translateSqlToDsl("select * from "+logIndex, 10, 10, false);
-        logService.dslQuery(TaskRunnerLog.class, logClient.getQueryIndexName(MscActionLog.class), dsl);
+        logService.dslQuery(TaskRunnerLog.class, dsl);
     }
 
     @Test
     public void testScroll() throws Exception {
         String dsl = logService.translateSqlToDsl("select * from \\\"saas-hotel-task_20191217\\\"", 0, 10, true);
-        ScrollResponse<TaskRunnerLog> taskRunnerLogScrollResponse = logClient.scrollQueryOpen(TaskRunnerLog.class, "uw.auth.server.vo.msc_action_log_20191217", 60, dsl);
+        ScrollResponse<TaskRunnerLog> taskRunnerLogScrollResponse = logClient.scrollQueryOpen(TaskRunnerLog.class,  60, dsl);
         System.out.println(taskRunnerLogScrollResponse);
     }
 
