@@ -23,6 +23,11 @@ public abstract class LogBaseVo {
      */
     protected String appHost;
 
+    /**
+     * 记录日志的级别。
+     */
+    protected int logLevel;
+
     public String getTimestamp() {
         return timestamp;
     }
@@ -45,5 +50,13 @@ public abstract class LogBaseVo {
 
     public void setAppHost(String appHost) {
         this.appHost = appHost;
+    }
+
+    public int getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(int logLevel) {
+        this.logLevel = logLevel;
     }
 }

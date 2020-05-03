@@ -1,12 +1,13 @@
 package uw.log.es;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uw.log.es.service.LogService;
-import uw.log.es.vo.ESDataList;
-import uw.log.es.vo.LogBaseVo;
-import uw.log.es.vo.SearchResponse;
+import uw.log.es.vo.*;
 
+import javax.annotation.Nullable;
+import javax.annotation.PreDestroy;
 import java.util.List;
 
 /**
@@ -31,7 +32,7 @@ public class LogClient {
      * @param logClass 日志类
      */
     public void regLogObject(Class<?> logClass) {
-        logService.regLogObject(logClass,null,null);
+        logService.regLogObject(logClass, null, null);
     }
 
     /**
@@ -40,49 +41,69 @@ public class LogClient {
      * @param logClass 日志类
      * @param index    自定义索引名称
      */
-    public void regLogObjectWithIndex(Class<?> logClass,String index) {
-        logService.regLogObject(logClass,index,null);
+    public void regLogObjectWithIndexName(Class<?> logClass, String index) {
+        logService.regLogObject(logClass, index, null);
     }
 
     /**
      * 注册日志类型
      *
-     * @param logClass 日志类
+     * @param logClass     日志类
      * @param indexPattern 索引模式
      */
-    public void regLogObjectWithIndexPattern(Class<?> logClass,String indexPattern) {
-        logService.regLogObject(logClass,null,indexPattern);
+    public void regLogObjectWithIndexPattern(Class<?> logClass, String indexPattern) {
+        logService.regLogObject(logClass, null, indexPattern);
     }
 
     /**
      * 注册日志类型
      *
-     * @param logClass 日志类
-     * @param index    自定义索引名称
+     * @param logClass     日志类
+     * @param index        自定义索引名称
      * @param indexPattern 索引模式
      */
-    public void regLogObjectWithIndexAndIndexPattern(Class<?> logClass,String index,String indexPattern) {
-        logService.regLogObject(logClass,index,indexPattern);
+    public void regLogObjectWithIndexNameAndPattern(Class<?> logClass, String index, String indexPattern) {
+        logService.regLogObject(logClass, index, indexPattern);
     }
 
     /**
-     * 获取日志配置的索引值
+     * 获取日志配置的索引名。
      *
      * @param logClass
      * @return
      */
-    public String getRawIndex(Class<?> logClass) {
-        return logService.getRawIndex(logClass);
+    public String getRawIndexName(Class<?> logClass) {
+        return logService.getRawIndexName(logClass);
     }
 
     /**
-     * 获取日志的查询索引
+     * 获得带引号的索引名。
+     * @param logClass
+     * @return
+     */
+
+    public String getQuotedRawIndexName(Class<?> logClass){
+        return  logService.getQuotedRawIndexName(logClass);
+    }
+
+
+    /**
+     * 获取日志的查询索引。
      *
      * @param logClass
      * @return
      */
-    public String getQueryIndex(Class<?> logClass) {
-        return logService.getQueryIndex(logClass);
+    public String getQueryIndexName(Class<?> logClass) {
+        return logService.getQueryIndexName(logClass);
+    }
+
+    /**
+     * 获得带引号的查询索引名。
+     * @param logClass
+     * @return
+     */
+    public String getQuotedQueryIndexName(Class<?> logClass){
+        return  logService.getQuotedQueryIndexName(logClass);
     }
 
     /**
@@ -91,7 +112,9 @@ public class LogClient {
      * @param source 日志对象
      */
     public <T extends LogBaseVo> void log(T source) {
-        logService.writeLog(source);
+        if (source.getLogLevel() > LogLevel.NONE.getValue()) {
+            logService.writeLog(source);
+        }
     }
 
     /**
@@ -107,133 +130,109 @@ public class LogClient {
     /**
      * 关闭写日志系统
      */
-    void destroyLog() {
+    @PreDestroy
+    void destroy() {
         logService.destroyLog();
     }
 
     /**
-     * 简单日志查询
-     *
-     * @param tClass 日志对象类型
-     * @param simpleQuery 简单查询条件
-     * @param <T>
-     * @return
-     */
-    public <T> List<T> simpleQueryLog(Class<T> tClass,String simpleQuery) {
-        return logService.simpleQueryLog(tClass,logService.getQueryIndex(tClass),simpleQuery);
-    }
-
-    /**
-     * 简单日志查询
-     *
-     * @param tClass 日志对象类型
-     * @param index 索引
-     * @param simpleQuery 简单查询条件
-     * @param <T>
-     * @return
-     */
-    public <T> List<T> simpleQueryLog(Class<T> tClass,String index,String simpleQuery) {
-        return logService.simpleQueryLog(tClass,index,simpleQuery);
-    }
-
-    /**
-     * 简单日志查询
-     *
-     * @param tClass 日志对象类型
-     * @param simpleQuery 简单查询条件
-     * @param <T>
-     * @return
-     */
-    public <T> SearchResponse<T> simpleQueryLogSearchResponse(Class<T> tClass, String simpleQuery) {
-        return logService.simpleQueryLogSearchResponse(tClass,logService.getQueryIndex(tClass),simpleQuery);
-    }
-
-    /**
-     * 简单日志查询
-     *
-     * @param tClass 日志对象类型
-     * @param index 索引
-     * @param simpleQuery 简单查询条件
-     * @param <T>
-     * @return
-     */
-    public <T> SearchResponse<T> simpleQueryLogSearchResponse(Class<T> tClass,String index,String simpleQuery) {
-        return logService.simpleQueryLogSearchResponse(tClass,index,simpleQuery);
-    }
-
-    /**
      * dsl日志查询
      *
-     * @param tClass 日志对象类型
+     * @param tClass   日志对象类型
      * @param dslQuery dsl查询内容
      * @param <T>
      * @return
      */
-    public <T> List<T> dslQueryLog(Class<T> tClass,String dslQuery) {
-        return logService.dslQueryLog(tClass,logService.getQueryIndex(tClass),dslQuery);
+    public <T> SearchResponse<T> dslQuery(Class<T> tClass, String dslQuery) {
+        return logService.dslQuery(tClass, logService.getQueryIndexName(tClass), dslQuery);
     }
 
     /**
      * dsl日志查询
      *
-     * @param tClass 日志对象类型
-     * @param index 索引
+     * @param tClass   日志对象类型
+     * @param index    索引
      * @param dslQuery dsl查询内容
      * @param <T>
      * @return
      */
-    public <T> List<T> dslQueryLog(Class<T> tClass,String index,String dslQuery) {
-        return logService.dslQueryLog(tClass,index,dslQuery);
+    public <T> SearchResponse<T> dslQuery(Class<T> tClass, String index, String dslQuery) {
+        return logService.dslQuery(tClass, index, dslQuery);
     }
 
     /**
-     * dsl日志查询
+     * 转换Sql 成 DSL
      *
-     * @param tClass 日志对象类型
-     * @param dslQuery dsl查询内容
-     * @param <T>
+     * @param sql 注意index(tableName)要进行转义
+     * @param resultNum =0时 es会有默认值 10，>0 limit 拼接
+     * @param isTrueCount 是否需要真实的总数
      * @return
      */
-    public <T> SearchResponse<T> dslQueryLogSearchResponse(Class<T> tClass,String dslQuery) {
-        return logService.dslQueryLogSearchResponse(tClass,logService.getQueryIndex(tClass),dslQuery);
+    public String translateSqlToDsl(String sql, int startIndex, int resultNum, boolean isTrueCount) throws Exception {
+        return logService.translateSqlToDsl(sql, startIndex, resultNum, isTrueCount);
     }
 
     /**
-     * dsl日志查询
+     * scroll查询
+     * 注：scroll dsl不能含有from节点
      *
-     * @param tClass 日志对象类型
-     * @param index 索引
-     * @param dslQuery dsl查询内容
+     * @param tClass              日志对象类型
+     * @param index               索引
+     * @param scrollExpireSeconds scroll api 过期时间
      * @param <T>
-     * @return
+     * @return 错误时为空
      */
-    public <T> SearchResponse<T> dslQueryLogSearchResponse(Class<T> tClass,String index,String dslQuery) {
-        return logService.dslQueryLogSearchResponse(tClass,index,dslQuery);
+    public <T> ScrollResponse<T> scrollQueryOpen(Class<T> tClass, String index, int scrollExpireSeconds, String dslQuery) {
+        return logService.scrollQueryOpen(tClass, index, scrollExpireSeconds, dslQuery);
     }
 
     /**
-     * dsl日志查询
+     * scroll查询 当获取到scrollId后
      *
-     * @param tClass 日志对象类型
-     * @param sql sql查询,需要 es 安装 es-sql 插件
-     * @param startIndex 开始位置
-     * @param pageSize 每页记录数
      * @param <T>
-     * @return
+     * @param tClass              日志对象类型
+     * @param index               索引 非必要的 只是让使用者能清楚的scrollId index
+     * @param scrollExpireSeconds scroll api 过期时间
+     * @return 错误时为空
      */
-    public <T> ESDataList<T> sqlQueryLog(Class<T> tClass, String sql, int startIndex, int pageSize) {
-        return logService.sqlQueryLog(tClass,sql,startIndex,pageSize);
+    public <T> ScrollResponse<T> scrollQueryNext(Class<T> tClass,@Nullable String index,
+                                                 String scrollId, int scrollExpireSeconds) {
+        return logService.scrollQueryNext(tClass, scrollId, scrollExpireSeconds);
     }
 
     /**
-     * dsl日志查询
+     * 关闭scroll api 查询
      *
-     * @param tClass 日志对象类型
-     * @param sql sql查询,需要 es 安装 es-sql 插件
+     * @param scrollId 需删除的scrollId
+     * @param index    索引 非必要的 只是让使用者能清楚删除的scrollId index
+     * @return
+     */
+    public DeleteScrollResponse scrollQueryClose(String scrollId, @Nullable String index) {
+        return logService.scrollQueryClose(scrollId);
+    }
+
+    /**
+     * 转换成分页形式
+     * @param response
+     * @param startIndex
+     * @param pageSize
      * @param <T>
      * @return
      */
-    public <T> SearchResponse<T> sqlQueryLogSearchResponse(Class<T> tClass,String sql) {
-        return logService.sqlQueryLogSearchResponse(tClass,sql);
+    public <T> ESDataList<T> mapQueryResponseToEDataList(SearchResponse<T> response, int startIndex, int pageSize) {
+        List<T> dataList = Lists.newArrayList();
+        if (response != null) {
+            SearchResponse.HitsResponse<T> hitsResponse = response.getHitsResponse();
+            List<SearchResponse.Hits<T>> hitsList = hitsResponse.getHits();
+            if (!hitsList.isEmpty()) {
+                for (SearchResponse.Hits<T> hits : hitsList) {
+                    dataList.add(hits.getSource());
+                }
+                return new ESDataList<>(dataList, startIndex, pageSize, hitsResponse.getTotal().getValue());
+            }
+        }
+        return new ESDataList<>(dataList, startIndex, pageSize, 0);
     }
+
+
 }

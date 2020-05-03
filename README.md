@@ -161,7 +161,10 @@ public class DemoSQLQuery {
 ```
 
 ##### 日志分页查询
-es本身对分页查询支持良好,使用简单查询和DSL查询默认是取10条,可以在es服务端配置。
+es本身对分页查询支持~~良好~~,使用简单查询和DSL查询默认是取10条,可以在es服务端配置。
+
+es 的分页是较坑的，为啥呢？举个例子吧，假如你每页是 10 条数据，你现在要查询第 100 页，实际上是会把每个 shard 上存储的前 1000 条数据都查到一个协调节点上，如果你有个 5 个 shard，那么就有 5000 条数据，接着协调节点对这 5000 条数据进行一些合并、处理，再获取到最终第 100 页的 10 条数据。
+
 
 项目中常见的分页查询是前端的列表查询,可以使用带SearchResponse后缀的方法将数据查出来,然后使用[uw-dao](http://192.168.88.88:10080/uw/uw-dao "数据库操作的类库")提供的DataList工具类进行包装即可,比如
 ```java
@@ -189,6 +192,32 @@ public class DemoPaginationQuery {
     }
 }
 ```
+##### 日志scroll api查询
+scroll 会一次性给你生成所有数据的一个快照，然后每次滑动向后翻页就是通过游标 scroll_id 移动，获取下一页下一页这样子，性能会比上面说的那种分页性能要高很多很多，基本上都是毫秒级的。
+```
+    @Test
+    public void testScroll() throws Exception {
+        String dsl = logService.translateSqlToDsl("select * from \\\"saas-hotel-task_20191217\\\"", 0, 10, true);
+        ScrollResponse<TaskRunnerLog> taskRunnerLogScrollResponse = logClient.scrollQueryOpen(TaskRunnerLog.class, "uw.auth.server.vo.msc_action_log_20191217", 60, dsl);
+        System.out.println(taskRunnerLogScrollResponse);
+    }
+
+    @Test
+    public void testScrollNext() {
+        ScrollResponse<TaskRunnerLog> taskRunnerLogScrollResponse = logClient.scrollQueryNext(TaskRunnerLog.class, null, "DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAFqj0WbTg3Z180Q1FRUHEwelZjbUI0NmROQQ==", 60);
+        System.out.println(taskRunnerLogScrollResponse);
+
+    }
+
+    @Test
+    public void deleteScroll() {
+        DeleteScrollResponse deleteScrollResponse = logClient.scrollQueryClose("DnF1ZXJ5VGhlbkZldGNoBAAAAAAABXUDFm04N2dfNENRUVBxMHpWY21CNDZkTkEAAAAAAAV1BBZtODdnXzRDUVFQcTB6VmNtQjQ2ZE5BAAAAAAAFdQUWbTg3Z180Q1FRUHEwelZjbUI0NmROQQAAAAAABXUZFm04N2dfNENRUVBxMHpWY21CNDZkTkE=",
+                null);
+        System.out.println(deleteScrollResponse);
+    }
+
+```
+
 ##### 学习的es的建议
 因为es版本目前迭代非常快。。。不要上百度搜文档了,搜出来的可能解决不了你的问题(因为版本不一致),建议参考[官方文档](https://www.elastic.co/guide/en/elasticsearch/guide/current/index.html "Elasticsearch: The Definitive Guide"),[中文版](https://github.com/elasticsearch-cn/elasticsearch-definitive-guide "Elasticsearch: The Definitive Guide"),中文文档翻译可能与最新版的原文档有出入,但是基本够用。
 

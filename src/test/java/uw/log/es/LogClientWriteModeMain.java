@@ -1,45 +1,35 @@
 package uw.log.es;
 
-import com.google.common.base.Stopwatch;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import uw.log.es.service.LogService;
 import uw.log.es.vo.LogInterface;
-import uw.log.es.vo.LogInterfaceOrder;
 
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author liliang
  * @since 2018-07-27
  */
-public class LogClientWriteModeTest {
+public class LogClientWriteModeMain {
 
     private static LogClient logClient;
 
-    @BeforeClass
-    public static void setUpTest() {
+
+    public static void main(String[] args) {
         LogClientProperties logClientProperties = new LogClientProperties();
         LogClientProperties.EsConfig esConfig = new LogClientProperties.EsConfig();
-        esConfig.setClusters("http://localhost:9200");
+        esConfig.setClusters("http://192.168.88.16:9200");
         esConfig.setMode(LogClientProperties.LogMode.READ_WRITE);
         esConfig.setAppInfoOverwrite(false);
-        esConfig.setMaxFlushInMilliseconds(1000);
-        esConfig.setMaxBytesOfBatch(5*1024*1024);
-        esConfig.setMaxBatchThreads(5);
+        esConfig.setMaxFlushInMilliseconds(10000);
+        esConfig.setMaxBytesOfBatch(5 * 1024 * 1024);
+        esConfig.setMaxBatchThreads(3);
+        esConfig.setMaxBatchQueueSize(10);
         logClientProperties.setEs(esConfig);
-        logClient = new LogClient(new LogService(logClientProperties,null,null));
-        logClient.regLogObjectWithIndexPattern(LogInterface.class,"_yyyy-MM");
-        logClient.regLogObjectWithIndexPattern(LogInterfaceOrder.class,"_yyyy-MM");
-    }
+        logClient = new LogClient(new LogService(logClientProperties, null, null));
+        logClient.regLogObjectWithIndexPattern(LogInterface.class, "_yyyy-MM");
 
-    @Test
-    public void testWriteLog() throws Exception {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        for (int i = 0 ; i< 1000; i++) {
+        for (int i = 0; i < 1000000000; i++) {
             LogInterface logInterface = new LogInterface();
             logInterface.setInterfaceType(1);
             logInterface.setInterfaceConfigId(Long.parseLong(RandomStringUtils.randomNumeric(6)));
@@ -54,12 +44,11 @@ public class LogClientWriteModeTest {
             logInterface.setResponseBody("吃了");
             logClient.log(logInterface);
         }
-        System.out.println("----"+stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        try {
+            Thread.sleep(600000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-
-    @AfterClass
-    public static void tearDownTest() {
-        logClient.destroy();
-    }
 }

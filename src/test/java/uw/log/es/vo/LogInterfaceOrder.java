@@ -37,7 +37,7 @@ public class LogInterfaceOrder extends LogBaseVo implements Serializable {
         return this;
     }
 
-    public LogInterfaceOrder response(String responseBody,int status) {
+    public LogInterfaceOrder response(String responseBody, int status) {
         setResponseBody(responseBody);
         setResponseDate(new java.util.Date());
         setStatus(status);

@@ -4,15 +4,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import uw.log.es.ser.ObjectAsStringDeserializer;
+import uw.log.es.util.ObjectAsStringDeserializer;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 查询返回的Response
  *
- * @author liliang
+ * @author liliang kaizen
  * @since 2018-04-25
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -57,7 +57,7 @@ public class SearchResponse<T> {
     }
 
     @JsonProperty("hits")
-    public HitsResponse getHisResponse () {
+    public HitsResponse<T> getHitsResponse() {
         return this.hitsResponse;
     }
 
@@ -241,7 +241,7 @@ public class SearchResponse<T> {
         /**
          * 1
          */
-        private int total;
+        private Total total;
 
         /**
          * 1.0
@@ -257,12 +257,12 @@ public class SearchResponse<T> {
             return this.hits;
         }
 
-        public void setTotal(int total) {
+        public void setTotal(Total total) {
             this.total = total;
         }
 
         @JsonProperty("total")
-        public int getTotal (){
+        public Total getTotal (){
             return this.total;
         }
 
